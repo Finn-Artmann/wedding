@@ -239,34 +239,36 @@ $(document).ready(function () {
 
 /********************** Extras **********************/
 
-// Google map
+// OpenStreetMap via Leaflet
 function initMap() {
-    var location = {lat: 49.0216727, lng: 12.027941};
-    var map = new google.maps.Map(document.getElementById('map-canvas'), {
-        zoom: 15,
-        center: location,
-        scrollwheel: false
-    });
+    // Exakte Koordinaten für ITC Fortune Park aus Ihrem Uber-Link
+    var coords = [22.593276, 88.270277]; 
+    
+    // Karte initialisieren im Canvas-Container
+    var map = L.map('map-canvas', {
+        scrollWheelZoom: false
+    }).setView(coords, 15);
 
-    var marker = new google.maps.Marker({
-        position: location,
-        map: map
-    });
+    // Offizielle OpenStreetMap-Kacheln laden
+    L.tileLayer('https://openstreetmap.org{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'
+    }).addTo(map);
+
+    // Marker auf die exakte Position setzen
+    L.marker(coords).addTo(map);
+    
+    // Zwingt Leaflet, die Kartengröße im CSS-Verbund sauber zu berechnen
+    setTimeout(function () { 
+        map.invalidateSize(); 
+    }, 300);
 }
 
-function initBBSRMap() {
-    var la_fiesta = {lat: 20.305826, lng: 85.85480189999998};
-    var map = new google.maps.Map(document.getElementById('map-canvas'), {
-        zoom: 15,
-        center: la_fiesta,
-        scrollwheel: false
-    });
+// Startet die OpenStreetMap-Initialisierung, sobald das HTML bereit ist
+document.addEventListener("DOMContentLoaded", function() {
+    initMap();
+});
 
-    var marker = new google.maps.Marker({
-        position: la_fiesta,
-        map: map
-    });
-}
 
 // alert_markup
 function alert_markup(alert_type, msg) {

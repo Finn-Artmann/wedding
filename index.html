@@ -24,6 +24,17 @@
     <link rel="manifest" href="manifest.json">
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#5bbad5">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- 1. Leaflet CSS in den Head-Bereich einfügen -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+
+<!-- 2. Leaflet JavaScript direkt danach einfügen -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+
+
 
     <script>
         // load css files from CDN if local node_modules fail
@@ -372,21 +383,44 @@
     </div>
 </section>
 
-<section id="map" class="section-padding">
+<style>
+    /* Verhindert, dass Leaflet das originale Layout verschiebt */
+    #map {
+        position: relative !important;
+    }
+    #map-canvas {
+        width: 100%;
+        height: 500px; /* Hier die Originalhöhe Ihrer Google Map eintragen, falls sie anders war */
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+    }
+    #map-content-wrapper {
+        position: relative;
+        z-index: 2; /* Drückt die Infobox visuell unverändert vor die Karte */
+    }
+</style>
+
+<section id="map" class="section-padding" style="position: relative; display: block; min-height: 500px;">
     <div class="text-center">
         <h3>How do I get there?</h3>
         <p>It's way easier than you think!</p>
     </div>
-    <div id="map-canvas"></div>
-    <div id="map-content-wrapper" class="container pointer-events-none">
+    
+    <!-- DER CONTAINER: Fest definierte Werte garantieren, dass OSM sichtbar bleibt -->
+    <div id="map-canvas" style="height: 450px !important; width: 100% !important; display: block !important; background-color: #f4f3f0; position: relative; z-index: 1;"></div>
+    
+    <!-- DIE INFO-BOX: Liegt dank z-index: 2 und negativem Margin exakt wie im Original über der Karte -->
+    <div id="map-content-wrapper" class="container pointer-events-none" style="position: relative; z-index: 2; margin-top: -380px; padding-bottom: 50px;">
         <div class="row">
             <div class="col-xs-offset-1 col-xs-10 col-md-offset-3 col-md-6">
                 <div class="text-center">
-                    <div id="btn-show-content" class="toggle-map-content pointer-events-auto">
+                    <div id="btn-show-content" class="toggle-map-content pointer-events-auto" style="margin-bottom: 15px; display: inline-block;">
                         <i class="fa fa-info-circle"></i>&nbsp;&nbsp; Show info
                     </div>
                 </div>
-                <div id="map-content" class="pointer-events-auto">
+                <div id="map-content" class="pointer-events-auto" style="background: rgba(255, 255, 255, 0.96); padding: 25px; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); margin-top: 10px;">
                     <div class="row">
                         <div class="col-md-6">
                             <h5>ITC Fortune Park</h5>
@@ -398,22 +432,65 @@
                                 <i class="fa fa-mobile"></i> <a href="tel://+917123456789">+91 7123456789</a></p>
                         </div>
                     </div>
-                    <div class="row text-center">
+                    <div class="row text-center" style="margin-top: 15px;">
                         <div class="col-md-6" style="padding: 5px;">
-                            <a class="btn btn-fill btn-small"
-                               href="https://m.uber.com/ul/?action=setPickup&client_id=Yh7Dl6SjB56RY2JuuZF8ttVa6ryFV78W&pickup=my_location&dropoff[formatted_address]=Fortune%20Park%20Panchwati%20-%20Hotels%20in%20Kolkata%2C%20Howrah%2C%20West%20Bengal%2C%20India&dropoff[latitude]=22.593276&dropoff[longitude]=88.270277"><i
+                            <a class="btn btn-fill btn-small" style="width: 100%; display: block;"
+                               href="https://uber.com[formatted_address]=Fortune%20Park%20Panchwati%20-%20Hotels%20in%20Kolkata%2C%20Howrah%2C%20West%20Bengal%2C%20India&dropoff[latitude]=22.593276&dropoff[longitude]=88.270277"><i
                                     class="fa fa-taxi"></i>&nbsp;&nbsp;Book Uber</a>
                         </div>
                         <div class="col-md-6" style="padding: 5px;">
-                            <a class="btn btn-accent btn-small" id="btn-show-map"><i class="fa fa-map-marker"></i>&nbsp;&nbsp;Show
-                                map</a>
+                            <a class="btn btn-accent btn-small" style="width: 100%; display: block;" id="btn-show-map"><i class="fa fa-map-marker"></i>&nbsp;&nbsp;Show map</a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- JAVASCRIPT: Steuert die Karte an und behebt das Rendering-Problem im Browser -->
+    <script>
+        function starteEchteOsmKarte() {
+            // Falls Leaflet noch nicht im Head geladen wurde, warten wir kurz
+            if (typeof L === 'undefined') {
+                setTimeout(starteEchteOsmKarte, 100);
+                return;
+            }
+
+            var coords = [22.593276, 88.270277]; // ITC Fortune Park, Indien
+            
+            // Karte initialisieren
+            var map = L.map('map-canvas', {
+                scrollWheelZoom: false,
+                zoomControl: true
+            }).setView(coords, 15);
+
+            // Kacheln laden
+            // Aktualisierte Kacheln-URL mit Subdomain-Verteilung für maximale Browser-Kompatibilität
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> Mitwirkende'
+            }).addTo(map);
+
+
+            // Marker setzen
+            L.marker(coords).addTo(map);
+
+            // Zwingt das Layout, sich an den Browser anzupassen
+            setTimeout(function () { 
+                map.invalidateSize(); 
+            }, 300);
+        }
+
+        // Ausführen sobald das Dokument bereit ist
+        if (document.readyState === 'loading') {
+            document.addEventListener("DOMContentLoaded", starteEchteOsmKarte);
+        } else {
+            starteEchteOsmKarte();
+        }
+    </script>
 </section>
+
+
 
 <section class="rsvp text-center" id="rsvp">
 
@@ -506,9 +583,7 @@
 <script src="js/jquery.mb.YTPlayer.min.js"></script>
 <script src="js/vendor/ouical.js"></script>
 <script src="js/scripts.min.js"></script>
-<script async defer
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBlPw3GQYI3faa_9mRE6plWuM7xNEmrwH0&callback=initMap"></script>
-<!-- Google Analytics -->
+
 <script>
     (function (i, s, o, g, r, a, m) {
         i['GoogleAnalyticsObject'] = r;
